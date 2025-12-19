@@ -137,7 +137,7 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
         }else {
           strCommand = `${strip_bus}[${strip_bus_num}].Mute=0`;
         }
-        log.info(strCommand);
+        // log.info(strCommand);
         vmInstance.setOption(strCommand);
       },
       mute_sends_hotkey_action: (hotkey) => {
@@ -160,6 +160,7 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
       try {
         Object.values(plugin.constructor.globalSettings.hotkeys).forEach(i => {
         if(i.id.includes(context)) {
+          hotkeyManager.addHotkey(i)
           hotkeyManager.registerActionHandler(i.id, this.default[i.fn_name])
         }
       })
@@ -183,6 +184,13 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
       if (this.observers?.[context] && this.observers[context] instanceof Function) {
         this.observers[context]();
       }
+
+      let globalSettings = plugin.constructor.globalSettings?.hotkeys ? plugin.constructor.globalSettings : { hotkeys: {} };
+      Object.entries(globalSettings.hotkeys).forEach(arr => {
+        if(arr[0].includes(context)) {
+          hotkeyManager.deleteHotkey(arr[1].id)
+        }
+      })
     },
     _propertyInspectorDidAppear({ context }) {
     },

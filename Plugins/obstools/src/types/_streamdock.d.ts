@@ -158,7 +158,7 @@ declare namespace EventPayload {
         row: number;
       };
       userDesiredState: number;
-      setting: {};
+      settings: {};
       state: number;
     };
   };
@@ -174,7 +174,7 @@ declare namespace EventPayload {
         column: number;
         row: number;
       };
-      setting: {};
+      settings: {};
       ticks: number;
     }
   };

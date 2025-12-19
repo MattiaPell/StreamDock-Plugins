@@ -1,306 +1,96 @@
+// canvas.js (头部)
+
 const { log } = require('./plugin');
-const { resolve, join, extname } = require('path');
 const fs = require('fs');
-const { launch } = require('puppeteer');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(exec);
-async function getDefaultBrowserPath() {
-    try {
-      const { stdout: progIdStdout } = await execAsync(
-        'reg query "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice" /v ProgId'
-      );
-  
-      const progIdMatch = progIdStdout.match(/ProgId\s+REG_SZ\s+(\S+)/);
-      if (!progIdMatch) {
-        throw new Error('无法找到 ProgId');
-      }
-  
-      const progId = progIdMatch[1];
-  
-      const { stdout: browserPathStdout } = await execAsync(
-        `reg query "HKEY_CLASSES_ROOT\\${progId}\\shell\\open\\command" /v ""`
-      );
-  
-      const browserPathMatch = browserPathStdout.match(/"(.*?)"/);
-      if (!browserPathMatch) {
-        throw new Error('无法找到浏览器路径');
-      }
-  
-      const browserPath = browserPathMatch[1];
-      return browserPath;
-    } catch (error) {
-      throw error;
-    }
-}
+const { createCanvas, loadImage } = require('@napi-rs/canvas'); // 引入新的依赖
 
-async function getCanvasImage(browserPath, htmlPath, params) {
-    const browser = await launch({
-        executablePath: browserPath,
-        headless: true
-    });
-    const page = await browser.newPage();
+// 移除 Puppeteer 和其他不相关的导入，保持文件整洁
+// const { launch } = require('puppeteer'); // 移除此行
+// ... 其他保持不变
 
-    await page.goto(`file://${resolve(htmlPath)}`, { 
-        waitUntil: 'networkidle0' 
-    });
-    page.on('console', msg => log.info('PAGE LOG:', msg.text()));
-    page.on('pageerror', error => log.info('Page error:', error.message));
-    // 设置参数并等待绘图完成
-    await page.evaluate((params) => {
-        window.myParams = params; // 这会触发我们定义的 setter
-    }, params);
+// canvas.js (替换原来的 renderWithCustomFonts 函数)
 
-    // 等待 canvas 有内容
-    await page.waitForFunction(() => {
-        const canvas = document.querySelector('canvas');
-        return canvas && canvas.width > 0 && canvas.height > 0;
-    });
-
-    const imageData = await page.evaluate(() => {
-        const canvas = document.querySelector('canvas');
-        if (!canvas) throw new Error('Canvas not found');
-        return canvas.toDataURL('image/png');
-    });
-
-    await browser.close();
-    return imageData.replace(/^data:image\/\w+;base64,/, '');
-}
-
-async function  test() {
-    try {
-        const htmlPath = join(__dirname, 'utils.html');
-        const params = {
-            width: 800,
-            height: 600,
-            text: "Hello Canvas",
-            color: "#000000"
-        };
-        const browserPath = await getDefaultBrowserPath();
-
-        log.info(browserPath);
-        const imageBase64 = await getCanvasImage(browserPath, htmlPath, params);
-
-        const imageBuffer = Buffer.from(imageBase64, 'base64');
-        fs.writeFileSync(`output.png`, imageBuffer);
-        log.log('Canvas图片已保存为output.png');
-    } catch (err) {
-        log.error('发生错误:', err);
-    }
-}
-
+/**
+ * 使用 @napi-rs/canvas 渲染性能信息图像。
+ * * @param {object} drawDate - 包含性能数据的对象。
+ * @returns {Promise<string|null>} 图像的 data URL (Base64 格式)，如果失败则返回 null。
+ */
 async function renderWithCustomFonts(drawDate) {
-  log.info('开始渲染带自定义字体的图像');
-  let browser = null;
+  log.info('开始渲染带自定义字体的图像 (使用 @napi-rs/canvas)');
+
+  const width = 256;
+  const height = 256;
+  
+  // 1. 创建 Canvas
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
   
   try {
-    const browserPath = await getDefaultBrowserPath();
-    log.info('获取到浏览器路径:', browserPath);
+    // 字体注册（可选，如果你需要自定义字体）
+    // 假设你有一个名为 'MyCustomFont.ttf' 的字体文件
+    // const fontPath = resolve(__dirname, 'assets/MyCustomFont.ttf');
+    // if (fs.existsSync(fontPath)) {
+    //   canvas.registerFont(fontPath, { family: 'CustomFont' });
+    // } else {
+    //   log.warn('自定义字体文件未找到，将使用默认字体。');
+    // }
+
+    // 2. 绘制背景
+    ctx.fillStyle = drawDate.backgroundColor || '#aa3c3c'; // 使用默认值
+    ctx.fillRect(0, 0, width, height);
     
-    log.info('启动浏览器...');
-    browser = await launch({
-      executablePath: browserPath,
-      args: ['--disable-web-security', '--allow-file-access-from-files'], 
-      headless: true 
-    });
-    log.info('浏览器启动成功');
+    // 3. 设置通用的文本样式
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     
-    log.info('创建新页面...');
-    const page = await browser.newPage();
-    log.info('页面创建成功');
+    // 4. 定义绘图元素的中心 Y 坐标
+    // 元素：延迟(Latency)、下载(Download)、上传(Upload)、时间(Time)
+    // 垂直方向上，每个元素占据 25% 的高度 (64px)
+    const yLatency = 32;   // 0.5 * 64
+    const yDownload = 96;  // 1.5 * 64
+    const yUpload = 160;   // 2.5 * 64
+    const yTime = 224;     // 3.5 * 64
+    const centerX = width / 2;
+
+    // --- 绘制 延迟 (Latency) ---
+    const latencyText = `​☼ ${drawDate.latency}`; // 使用相似的 Unicode 符号
+    ctx.fillStyle = drawDate.latencyColor || '#808080';
+    ctx.font = 'bold 42px Arial'; // 模拟原 CSS 的 '42px font-weight: bold'
+    ctx.fillText(latencyText, centerX, yLatency);
     
-    // 设置控制台监听
-    log.info('设置页面控制台监听...');
-    page.on('console', msg => {
-      log.info('浏览器控制台:', msg.text());
-    });
+    // --- 绘制 下载 (Download) ---
+    const downloadText = `▼ ${drawDate.download}`;
+    ctx.fillStyle = drawDate.downloadColor || '#008000';
+    ctx.font = 'bold 42px Arial';
+    ctx.fillText(downloadText, centerX, yDownload);
+
+    // --- 绘制 上传 (Upload) ---
+    const uploadText = `▲ ${drawDate.upload}`;
+    ctx.fillStyle = drawDate.uploadColor || '#800080';
+    ctx.font = 'bold 42px Arial';
+    ctx.fillText(uploadText, centerX, yUpload);
+
+    // --- 绘制 时间 (Time) ---
+    const timeText = `${drawDate.time}`;
+    ctx.fillStyle = drawDate.timeColor || '#ffffff';
+    ctx.font = '48px Arial'; // 模拟原 CSS 的 '48px'
+    ctx.fillText(timeText, centerX, yTime);
+
+    // 5. 将 Canvas 转换为 Base64 格式的 PNG 图像
+    const base64String = canvas.toDataURL('image/png');
     
-    // 创建HTML内容
-    log.info('准备设置页面内容...');
-// sdtools.common.js:106 Load: timeColor=#ffffff
-// sdtools.common.js:106 Load: uploadColor=#800080
-// sdtools.common.js:146 Save: backgroundColor<=#aa3c3c
-// sdtools.common.js:146 Save: latencyColor<=#808080
-// sdtools.common.js:146 Save: downloadColor<=#008000
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-      <title>Performance Info</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: ${drawDate.backgroundColor};
-          color: white;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          height: 256px;
-          width: 256px;
-          margin: 0;
-        }
+    log.info('Canvas 渲染成功，返回 Base64 字符串');
+    return base64String;
 
-        .row {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin-bottom: 10px;
-          width: 100%;
-          white-space: nowrap;
-        }
-
-        .latency {
-          margin-top: 20px;
-          font-size: 42px;
-          font-weight: bold;
-          color: ${drawDate.latencyColor}
-        }
-
-        .unit-ms {
-          font-size: 24px;
-          margin-left: 10px;
-        }
-
-        .download {
-          font-size: 42px;
-          font-weight: bold;
-          color: ${drawDate.downloadColor};
-        }
-
-        .upload {
-          font-size: 42px;
-          font-weight: bold;
-          color: ${drawDate.uploadColor};
-        }
-
-        .unit-m {
-          font-size: 24px;
-          margin-left: 10px;
-        }
-
-        .time {
-          font-size: 48px;
-          margin-top: 20px;
-          color: ${drawDate.timeColor};
-        }
-      </style>
-      </head>
-      <body>
-        <div class="row">
-          <span class="latency">&#x23F2; ${drawDate.latency}</span><span class="unit-ms"></span>
-        </div>
-        <div class="row">
-          <span class="download">&#x25BC; ${drawDate.download}</span><span class="unit-m"></span>
-        </div>
-        <div class="row">
-          <span class="upload">&#x25B2; ${drawDate.upload}</span><span class="unit-m"></span>
-        </div>
-        <div class="row">
-          <span class="time">${drawDate.time}</span>
-        </div>
-      </body>
-      </html>
-    `;
-
-    log.info('开始设置页面内容...');
-    await page.setContent(htmlContent).catch(err => {
-      log.error('设置页面内容失败:', err);
-      throw err;
-    });
-
-    // 获取 body 元素的 bounding box (尺寸和位置)
-    const body = await page.$('body');
-    if (!body) {
-      throw new Error('<body> element not found.');
-    }
-    
-    const boundingBox = await body.boundingBox();
-    if (!boundingBox) {
-      throw new Error('Could not get bounding box of <body>.');
-    }
-
-    log.info('开始截图 body为 Base64...');
-    const base64String = await page.screenshot({
-      clip: {
-        x: boundingBox.x,
-        y: boundingBox.y,
-        width: boundingBox.width,
-        height: boundingBox.height,
-      },
-      encoding: 'base64',
-    });
-
-    // log.info('截图为 Base64 成功', 'data:image/png;base64,' + base64String);
-    return 'data:image/png;base64,' + base64String;
   } catch (err) {
-    log.error('渲染过程出错:', err);
+    log.error('渲染过程出错 (使用 @napi-rs/canvas):', err);
     return null;
-  } finally {
-    if (browser) {
-      log.info('正在关闭浏览器...');
-      try {
-        await browser.close();
-        log.info('浏览器已关闭');
-      } catch (err) {
-        log.error('关闭浏览器时出错:', err);
-      }
-    }
   }
 }
 
-// 修改fontToBase64函数以添加更多日志和错误处理
-function fontToBase64(path) {
-  if (!path) {
-    log.error("fontToBase64: 路径为空!");
-    return ""; 
-  }
-  
-  log.info("读取字体文件:", path);
-  
-  try {
-    // 检查文件是否存在
-    if (!fs.existsSync(path)) {
-      log.error(`字体文件不存在: ${path}`);
-      return "";
-    }
-    
-    // 获取文件大小
-    const stats = fs.statSync(path);
-    log.info(`字体文件大小: ${stats.size} 字节`);
-    
-    if (stats.size === 0) {
-      log.error("字体文件大小为零!");
-      return "";
-    }
-    
-    // 读取文件
-    const data = fs.readFileSync(path);
-    const base64 = data.toString('base64');
-    
-    log.info(`成功读取字体文件，Base64长度: ${base64.length}`);
-    
-    return base64;
-  } catch (err) {
-    log.error("读取字体文件失败:", err);
-    return "";
-  }
-}
-  
-// renderWithCustomFonts({
-//   backgroundColor: 'black',
-//   latencyColor: 'white',
-//   downloadColor: 'green',
-//   uploadColor: 'blue',
-//   timeColor: 'pink',
-//   latency: '78 ms',
-//   download: '3.3 M',
-//   upload: '4.4 M',
-//   time: '15:13'
-
-// }).catch((e) => {log.error(e)});
+// canvas.js (底部)
 
 module.exports = {
-    test,
+    // 移除 test
     renderWithCustomFonts
 }

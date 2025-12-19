@@ -8,7 +8,7 @@ const log = require('log4js').configure({
         default: { appenders: ['file'], level: 'info' }
     }
 }).getLogger();
-
+// log.info(process.argv);
 // 主线程错误处理
 process.on('uncaughtException', (error) => {
     log.error('Uncaught Exception:', error);
@@ -20,13 +20,32 @@ process.on('unhandledRejection', (reason) => {
 // 插件类
 const ws = require('ws');
 class Plugins {
-    static language = process.argv[5];
+    static language = (() => {
+        try {
+            const arg = process.argv[9];
+            if (!arg) return 'en'; // 默认值
+            let config = arg;
+            
+            if(typeof arg == 'string') {
+                const fixedJSON = arg
+                .replace(/^"(.*)"$/, '$1')  // 移除外层双引号
+                .replace(/'/g, '"');       // 单引号转双引号
+
+                config = JSON.parse(fixedJSON)
+            }
+            log.info(config?.application?.language);
+            return config?.application?.language || 'en'; // 可选链 + 默认值
+        } catch (err) {
+            log.error('Failed to parse language config:', err);
+            return 'en'; // 默认值
+        }
+    })();
     constructor() {
         if (Plugins.instance) {
             return Plugins.instance;
         }
-        this.ws = new ws("ws://127.0.0.1:" + process.argv[2]);
-        this.ws.on('open', () => this.ws.send(JSON.stringify({ uuid: process.argv[3], event: process.argv[4] })));
+        this.ws = new ws("ws://127.0.0.1:" + process.argv[3]);
+        this.ws.on('open', () => this.ws.send(JSON.stringify({ uuid: process.argv[5], event: process.argv[7] })));
         this.ws.on('close', process.exit);
         this.ws.on('message', e => {
             const data = JSON.parse(e.toString());

@@ -83,7 +83,8 @@
   "Author": "Mirabox",
   "Name": "speedTest",
   "Icon": "static/speed.png",
-  "CodePath": "plugin/app.exe",
+  "CodePathWin": "plugin/index.js",
+  "CodePathMac": "plugin/index.js",
   "Description": "speedTest",
   "Category": "speedTest",
   "CategoryIcon": "static/speed.png",
@@ -100,6 +101,9 @@
     }
   ],
   "Software": {
-    "MinimumVersion": "2.9"
+    "MinimumVersion": "3.10.188.226"
+  },
+  "Nodejs": {
+    "Version": "20"
   }
 }

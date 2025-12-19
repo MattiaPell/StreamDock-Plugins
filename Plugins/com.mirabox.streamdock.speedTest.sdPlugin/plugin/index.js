@@ -50,8 +50,8 @@ function getCurrentTime(use12HourFormat = false, showSeconds = false) {
  */
 async function imageToBase64(filePath) {
     // 统一转为绝对路径
-    const absolutePath = path.isAbsolute(filePath) 
-        ? filePath 
+    const absolutePath = path.isAbsolute(filePath)
+        ? filePath
         : path.join(__dirname, filePath);
 
     // 检查文件是否存在
@@ -77,13 +77,13 @@ function saveJsonToFile(jsonData, filePath) {
             // 确保目录存在
             const dir = path.dirname(filePath);
             await fs.mkdir(dir, { recursive: true });
-            
+
             // 将数据转换为格式化的 JSON 字符串
             const jsonString = JSON.stringify(jsonData, null, 2);
-            
+
             // 写入文件
             await fs.writeFile(filePath, jsonString);
-            
+
             const resolvedPath = path.resolve(filePath);
             log.info(`数据已成功保存到 ${resolvedPath}`);
             resolve([null, resolvedPath]);
@@ -108,21 +108,21 @@ plugin.action1 = new Actions({
         longPressThreshold: 1000, // 长按阈值，单位毫秒
         longPressTimers: {}, // 用于存储每个实例的长按定时器
         async speedTest(data) {
-            log.info(data.context);
+            // log.info(data.context);
             const settings = this.instances[data.context];
-            log.info(settings);
-            if(settings.testInfo.state === 'running') return;
+            // log.info(settings);
+            if (settings.testInfo.state === 'running') return;
             settings.testInfo.state = 'running';
             setInitImage(data.context, '../static/speed-speedtest.png');
             const dots = ['.', '..', '...'];
             let interval = setInterval(() => {
-                if(settings.testInfo.state === 'running') {
+                if (settings.testInfo.state === 'running') {
                     plugin.setTitle(data.context, `Running \n -Speed- \n Test${dots[new Date().getSeconds() % 3]} `);
-                }else {
+                } else {
                     clearInterval(interval);
                 }
-            },1000);
-            log.info('------------serverId---------', settings.serverId)
+            }, 1000);
+            log.info('----------serverId---------', settings.serverId)
             const [err, result] = await runSpeedTest({ serverId: settings.serverId });
             settings.testInfo.state = 'stop';
             if (err) {
@@ -137,7 +137,10 @@ plugin.action1 = new Actions({
         },
         async draw(context) {
             const settings = this.instances[context];
-            if(settings.testInfo.latency == null) return;
+            if (settings.testInfo.latency == null) {
+                plugin.setTitle(context, `Speed Test fail`);
+                return;
+            }
             renderWithCustomFonts({
                 backgroundColor: settings.backgroundColor,
                 latencyColor: settings.latencyColor,
@@ -151,31 +154,31 @@ plugin.action1 = new Actions({
             }).then(base64Img => {
                 plugin.setTitle(context, ``);
                 plugin.setImage(context, base64Img);
-            }).catch((e) => { 
+            }).catch((e) => {
                 log.error(e);
                 plugin.setTitle(context, `Speed Test fail`);
             });
         },
         async handleShortPress(data) {
-            this.speedTest(data);  
+            this.speedTest(data);
         },
         handleLongPress(data) {
-            if(this.instances[data.context].testInfo.url !== '') {
+            if (this.instances[data.context].testInfo.url !== '') {
                 plugin.openUrl(this.instances[data.context].testInfo.url);
             }
         },
         autoTest(data) {
             const context = data.context;
-            if(data.payload.settings.autorunTime !== '') {
+            if (data.payload.settings.autorunTime !== '') {
                 log.info('-----auto not null-----')
-                if(this.intervals[context] == undefined) {
+                if (this.intervals[context] == undefined) {
                     log.info('-----interval undefined-----')
                     this.intervals[context] = setInterval(() => {
                         this.speedTest(data)
                     }, 1000 * 60 * Number.parseInt(data.payload.settings.autorunTime))
                     return;
                 }
-                if(data.payload.settings.autorunTime !== this.instances[context].autorunTime) {
+                if (data.payload.settings.autorunTime !== this.instances[context].autorunTime) {
                     log.info('-----interval change-----')
                     clearInterval(this.intervals[context])
                     delete this.intervals[context]
@@ -183,7 +186,7 @@ plugin.action1 = new Actions({
                         this.speedTest(data)
                     }, 1000 * 60 * Number.parseInt(data.payload.settings.autorunTime))
                 }
-            }else {
+            } else {
                 log.info('-----auto close-----')
                 clearInterval(this.intervals[context])
                 delete this.intervals[context]
@@ -194,9 +197,9 @@ plugin.action1 = new Actions({
         log.info("操作创建: ", data.context);
         // 获取测速地址
         let [err, result] = await getSpeedtestServers();
-        if(err) {
+        if (err) {
 
-        }else {
+        } else {
             this.default.servers = result
         }
         this.default.servers.push({
@@ -208,7 +211,7 @@ plugin.action1 = new Actions({
         settings.servers = this.default.servers.map(i => ({ name: i.sponsor, id: i.id }));
         settings.servers.unshift({ name: '-CLOSEST SERVER-', id: '' });
         plugin.setSettings(data.context, settings);
-        log.info(settings.servers);
+        // log.info(settings.servers);
         this.default.instances[data.context] = settings;
         this.default.autoTest(data);
     },
@@ -219,7 +222,7 @@ plugin.action1 = new Actions({
         this.default.autoTest(data);
 
         this.default.instances[context] = Object.assign(this.default.instances[context], data.payload.settings);
-        log.info(this.default.instances[context]);
+        // log.info(this.default.instances[context]);
         // this.default.draw(context);
     },
     keyDown(data) {
@@ -252,10 +255,10 @@ plugin.action1 = new Actions({
         // 对于长按已经触发的情况，这里可以根据需要添加一些清理逻辑，如果 handleLongPress 中没有处理的话
     },
     dialRotate(data) {//旋钮旋转
-        log.info(data);
+        // log.info(data);
     },
     dialDown(data) {//旋钮按下
-        log.info(data);
+        // log.info(data);
     }
 });
 
@@ -269,21 +272,21 @@ plugin.action2 = new Actions({
         longPressThreshold: 1000, // 长按阈值，单位毫秒
         longPressTimers: {}, // 用于存储每个实例的长按定时器
         async speedTest(data) {
-            log.info(data.context);
+            // log.info(data.context);
             const settings = this.instances[data.context];
-            log.info(settings);
-            if(settings.testInfo.state === 'running') return;
+            // log.info(settings);
+            if (settings.testInfo.state === 'running') return;
             settings.testInfo.state = 'running';
             setInitImage(data.context, '../static/speed-librespeed.png');
             const dots = ['.', '..', '...'];
             let interval = setInterval(() => {
-                if(settings.testInfo.state === 'running') {
+                if (settings.testInfo.state === 'running') {
                     plugin.setTitle(data.context, `Running \n -Speed- \n Test${dots[new Date().getSeconds() % 3]} `);
-                }else {
+                } else {
                     clearInterval(interval);
                 }
-            },1000);
-            log.info('------------serverId---------', settings.serverId, this.serversPath)
+            }, 1000);
+            log.info('----------serverId---------', settings.serverId, this.serversPath)
             const [err, result] = await runLibreSpeedTest({ serverId: settings.serverId, serversPath: this.serversPath });
             settings.testInfo.state = 'stop';
             if (err) {
@@ -298,7 +301,10 @@ plugin.action2 = new Actions({
         },
         async draw(context) {
             const settings = this.instances[context];
-            if(settings.testInfo.latency == null) return;
+            if (settings.testInfo.latency == null) {
+                plugin.setTitle(context, `Speed Test fail`);
+                return;
+            }
             renderWithCustomFonts({
                 backgroundColor: settings.backgroundColor,
                 latencyColor: settings.latencyColor,
@@ -312,31 +318,31 @@ plugin.action2 = new Actions({
             }).then(base64Img => {
                 plugin.setTitle(context, ``);
                 plugin.setImage(context, base64Img);
-            }).catch((e) => { 
+            }).catch((e) => {
                 log.error(e);
                 plugin.setTitle(context, `Speed Test fail`);
             });
         },
         async handleShortPress(data) {
-            this.speedTest(data);  
+            this.speedTest(data);
         },
         handleLongPress(data) {
-            if(this.instances[data.context].testInfo.url !== '') {
+            if (this.instances[data.context].testInfo.url !== '') {
                 plugin.openUrl(this.instances[data.context].testInfo.url);
             }
         },
         autoTest(data) {
             const context = data.context;
-            if(data.payload.settings.autorunTime !== '') {
+            if (data.payload.settings.autorunTime !== '') {
                 log.info('-----auto not null-----')
-                if(this.intervals[context] == undefined) {
+                if (this.intervals[context] == undefined) {
                     log.info('-----interval undefined-----')
                     this.intervals[context] = setInterval(() => {
                         this.speedTest(data)
                     }, 1000 * 60 * Number.parseInt(data.payload.settings.autorunTime))
                     return;
                 }
-                if(data.payload.settings.autorunTime !== this.instances[context].autorunTime) {
+                if (data.payload.settings.autorunTime !== this.instances[context].autorunTime) {
                     log.info('-----interval change-----')
                     clearInterval(this.intervals[context])
                     delete this.intervals[context]
@@ -344,7 +350,7 @@ plugin.action2 = new Actions({
                         this.speedTest(data)
                     }, 1000 * 60 * Number.parseInt(data.payload.settings.autorunTime))
                 }
-            }else {
+            } else {
                 log.info('-----auto close-----')
                 clearInterval(this.intervals[context])
                 delete this.intervals[context]
@@ -355,9 +361,9 @@ plugin.action2 = new Actions({
         log.info("操作创建: ", data.context);
         // 获取测速地址
         let [err, result] = await getLibreSpeedTestServers();
-        if(err) {
-            
-        }else {
+        if (err) {
+
+        } else {
             this.default.servers = result
         }
         this.default.servers.unshift(
@@ -371,12 +377,12 @@ plugin.action2 = new Actions({
                 "getIpURL": "getIP.php"
             }
         )
-        this.default.servers =  await getAvailableServers(this.default.servers);
+        this.default.servers = await getAvailableServers(this.default.servers);
 
         let [pathErr, pathResult] = await saveJsonToFile(this.default.servers, './servers.json');
-        if(pathErr) {
-            
-        }else {
+        if (pathErr) {
+
+        } else {
             this.default.serversPath = pathResult
         }
 
@@ -384,7 +390,7 @@ plugin.action2 = new Actions({
         settings.servers = this.default.servers.map(i => ({ name: i.name, id: i.id }));
         settings.servers.unshift({ name: '-CLOSEST SERVER-', id: '' });
         plugin.setSettings(data.context, settings);
-        log.info(settings.servers);
+        // log.info(settings.servers);
         this.default.instances[data.context] = settings;
         this.default.autoTest(data);
     },
@@ -395,7 +401,7 @@ plugin.action2 = new Actions({
         this.default.autoTest(data);
 
         this.default.instances[context] = Object.assign(this.default.instances[context], data.payload.settings);
-        log.info(this.default.instances[context]);
+        // log.info(this.default.instances[context]);
         // this.default.draw(context);
     },
     keyDown(data) {
@@ -428,9 +434,9 @@ plugin.action2 = new Actions({
         // 对于长按已经触发的情况，这里可以根据需要添加一些清理逻辑，如果 handleLongPress 中没有处理的话
     },
     dialRotate(data) {//旋钮旋转
-        log.info(data);
+        // log.info(data);
     },
     dialDown(data) {//旋钮按下
-        log.info(data);
+        // log.info(data);
     }
 });

@@ -40,6 +40,8 @@ class MidiSender {
     }
 
     sendMidiCommand(commandString) {
+        if(commandString === "") return;
+        
         const match = commandString.match(/^SendMidi\((.*)\);?$/);
         if (!match || match.length < 2) {
             log.error("[MidiSender] 错误: MIDI 命令格式不正确。应为 SendMidi(port, type, channel, data1, [data2]);");

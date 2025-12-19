@@ -1,6 +1,7 @@
 // speedtest.js
 const { spawn } = require('child_process');
 const path = require('path');
+const os = require('os'); // 引入 os 模块 (可选，但 process 是内置的)
 
 /**
  * 执行 speedtest 测速并返回结果
@@ -12,7 +13,12 @@ const path = require('path');
 function runSpeedTest(options = {}) {
   return new Promise((resolve, reject) => {
     const { serverId, exePath } = options;
-    const finalExePath = exePath || path.join(__dirname, 'bin', 'speedtest.exe');
+
+    // **核心修改：根据平台判断可执行文件后缀**
+    const isWindows = process.platform === 'win32';
+    const defaultExeName = isWindows ? 'speedtest.exe' : 'speedtest';
+
+    const finalExePath = exePath || path.join(__dirname, 'bin', defaultExeName);
     
     // 构建命令参数（serverId 为可选）
     const args = [];
@@ -74,7 +80,10 @@ function runSpeedTest(options = {}) {
 function runLibreSpeedTest(options = {}) {
   return new Promise((resolve, reject) => {
     const { serverId, exePath, serversPath } = options;
-    const finalExePath = exePath || path.join(__dirname, 'bin', 'librespeed-cli.exe');
+    // **核心修改：根据平台判断可执行文件后缀**
+    const isWindows = process.platform === 'win32';
+    const defaultExeName = isWindows ? 'librespeed-cli.exe' : 'librespeed-cli';
+    const finalExePath = exePath || path.join(__dirname, 'bin', defaultExeName);
     console.log(finalExePath);
     // 构建命令参数（serverId 为可选）
     const args = ['--simple'];

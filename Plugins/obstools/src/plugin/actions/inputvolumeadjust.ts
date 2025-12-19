@@ -15,8 +15,9 @@ export default function (name: string) {
       const settings = plugin.getAction(context).settings as any;
         try {
           let [state, result] = await getInputVolume(settings.inputUuid);
-          if(state) {
-            settings.inputVolumeDb = result.inputVolumeDb;
+          if(!state) {
+            settings.inputVolumeDb = Number(result.inputVolumeDb).toFixed(1);
+            // settings.inputVolumeDb = result.inputVolumeDb;
           }else {
             settings.inputVolumeDb = 0;
           }
@@ -30,8 +31,9 @@ export default function (name: string) {
         try {
           let [state, result] = await getInputVolume(settings.inputUuid);
           if(!state) {
-            plugin.getAction(context).setTitle(result.inputVolumeDb + ' db');
-            settings.inputVolumeDb = result.inputVolumeDb;
+            settings.inputVolumeDb = Number(result.inputVolumeDb).toFixed(1);
+            plugin.getAction(context).setTitle(settings.inputVolumeDb + ' db');
+            // settings.inputVolumeDb = result.inputVolumeDb;
             plugin.getAction(context).setSettings(settings);
           }else {
             plugin.getAction(context).setTitle(state);

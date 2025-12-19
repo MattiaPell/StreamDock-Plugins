@@ -286,6 +286,7 @@ function stop() {
  * @returns {boolean} 添加或更新是否成功。
  */
 function addHotkey(hotkey) {
+    log.info(hotkey,'------------------------')
     if (!hotkey || !hotkey.id || !hotkey.shortcut || !hotkey.action) {
         log.error("[HotkeyManager] 无法添加快捷键：无效的快捷键对象。", hotkey);
         return false;

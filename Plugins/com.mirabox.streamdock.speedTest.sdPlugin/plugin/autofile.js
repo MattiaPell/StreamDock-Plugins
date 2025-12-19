@@ -33,11 +33,14 @@ try {
                  &&!relativePath.startsWith('plugin\\build')
                  &&!relativePath.startsWith('plugin\\log')
                  &&!relativePath.startsWith('.git')
-                 &&!relativePath.startsWith('.vscode');
+                 &&!relativePath.startsWith('.vscode')
+                 &&!relativePath.startsWith('plugin\\utils')
+                 &&!relativePath.startsWith('plugin\\custom_node_modules');
         }
     });
     
     fs.copySync( path.join(__dirname, "build"), path.join(PluginPath,'plugin'))
+    fs.copySync(path.join(__dirname, "custom_node_modules"), path.join(PluginPath, 'plugin', 'node_modules'));
 
     console.log(`插件 "${PluginName}" 已成功复制到 "${PluginPath}"`);
     console.log('构建成功-------------');

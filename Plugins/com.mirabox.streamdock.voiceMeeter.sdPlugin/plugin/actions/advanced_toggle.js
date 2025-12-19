@@ -91,7 +91,7 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
           strCommand = mode2_key_press;
           sender.sendMidiCommand(mode2_midi);
         }
-        log.info(strCommand);
+        // log.info(strCommand);
         vmInstance.setOption(strCommand);
       },
       mode1_send_hotkey_action: (hotkey) => {
@@ -113,6 +113,7 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
       try {
         Object.values(plugin.constructor.globalSettings.hotkeys).forEach(i => {
         if(i.id.includes(context)) {
+          hotkeyManager.addHotkey(i)
           hotkeyManager.registerActionHandler(i.id, this.default[i.fn_name])
         }
       })
@@ -140,6 +141,13 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
       if (this.observers?.[context + 'title_value'] && this.observers[context + 'title_value'] instanceof Function) {
         this.observers[context + 'title_value']();
       }
+
+      let globalSettings = plugin.constructor.globalSettings?.hotkeys ? plugin.constructor.globalSettings : { hotkeys: {} };
+      Object.entries(globalSettings.hotkeys).forEach(arr => {
+        if(arr[0].includes(context)) {
+          hotkeyManager.deleteHotkey(arr[1].id)
+        }
+      })
     },
     _propertyInspectorDidAppear({ context }) {
     },

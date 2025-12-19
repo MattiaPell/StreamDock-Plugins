@@ -115,6 +115,7 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
       try {
         Object.values(plugin.constructor.globalSettings.hotkeys).forEach(i => {
           if (i.id.includes(context)) {
+            hotkeyManager.addHotkey(i)
             hotkeyManager.registerActionHandler(i.id, this.default[i.fn_name])
           }
         })
@@ -134,11 +135,18 @@ export default function (plugin, vmInstance, addListener, log, timers, hotkeyMan
 
     },
     _willDisappear({ context, payload }) {
-      // // log.info('willDisAppear', context)
+      // log.info('willDisAppear', context)
       timers[context] && clearInterval(timers[context]);
       if (this.observers?.[context] && this.observers[context] instanceof Function) {
         this.observers[context]();
       }
+
+      let globalSettings = plugin.constructor.globalSettings?.hotkeys ? plugin.constructor.globalSettings : { hotkeys: {} };
+      Object.entries(globalSettings.hotkeys).forEach(arr => {
+        if(arr[0].includes(context)) {
+          hotkeyManager.deleteHotkey(arr[1].id)
+        }
+      })
     },
     _propertyInspectorDidAppear({ context }) {
     },

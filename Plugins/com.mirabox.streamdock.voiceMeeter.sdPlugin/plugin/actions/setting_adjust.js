@@ -7,11 +7,13 @@ export default function(plugin, vmInstance, addListener, log, timers) {
             // log.info(`Instance ${data.context} - 短按事件:`, data);
             const context = data.context;
             const settings = data.payload.settings;
+            this.setSettingAdjust(data, true);
         },
         handleLongPress(data) {
             // log.info(`Instance ${data.context} - 长按事件 (triggered on KeyDown):`, data);
             const context = data.context;
             const settings = data.payload.settings;
+            this.setSettingAdjust(data, true);
         },
         observers: [],
         observerFn: function (context, settings) {
@@ -43,7 +45,7 @@ export default function(plugin, vmInstance, addListener, log, timers) {
             let str = vmInstance.getOption(strCommand);
             plugin.setTitle(context, title + str);
         },
-        setSettingAdjust: function (data) {
+        setSettingAdjust: function (data, init = false) {
           const context = data.context;
           const settings = data.payload.settings;
           const {
@@ -54,6 +56,12 @@ export default function(plugin, vmInstance, addListener, log, timers) {
           } = settings;
           let strCommand = "";
           strCommand = `${'Strip'}[${strip_num}].${setting}`;
+          // 重置设置
+          if(init) {
+            strCommand += `=0.0`;
+            vmInstance.setOption(strCommand);
+            return
+          }
           if(step_size === "") {
             plugin.showAlert(context);
             return
@@ -114,9 +122,8 @@ export default function(plugin, vmInstance, addListener, log, timers) {
     },
     sendToPlugin({ payload, context }) {
     },
-    keyDown(data) {
+    dialDown(data) {
         // log.info(`KeyDown on instance ${data.context}:`);
-        return
         const context = data.context;
 
         // 如果该实例已经有定时器在运行，先清除之前的（防止重复触发）
@@ -131,9 +138,8 @@ export default function(plugin, vmInstance, addListener, log, timers) {
             delete this.default.longPressTimers[context]; // 长按触发后清除定时器
         }, this.default.longPressThreshold);
     },
-    keyUp(data) {
+    dialUp(data) {
         // log.info(`KeyUp on instance ${data.context}:`);
-        return
         const context = data.context;
 
         // 如果该实例有定时器在运行，说明在阈值时间内抬起了按键，是短按
@@ -145,7 +151,6 @@ export default function(plugin, vmInstance, addListener, log, timers) {
         // 如果没有定时器在运行，说明长按事件已经触发或者之前没有 keyDown 事件
         // 对于长按已经触发的情况，这里可以根据需要添加一些清理逻辑，如果 handleLongPress 中没有处理的话
     },
-    dialDown({ context, payload }) { },
     dialRotate({ context, payload }) { 
       // log.info(payload)
       this.default.setSettingAdjust({context, payload})
