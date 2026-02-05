@@ -57,6 +57,18 @@
     "Name": "Controllo Audio",
     "Tooltip": "Controllo Audio"
   },
+  "com.hotspot.streamdock.discord.video": {
+    "Name": "Attiva/Disattiva Video",
+    "Tooltip": "Attiva/Disattiva fotocamera"
+  },
+  "com.hotspot.streamdock.discord.screenshare": {
+    "Name": "Attiva/Disattiva Condivisione Schermo",
+    "Tooltip": "Attiva/Disattiva condivisione schermo"
+  },
+  "com.hotspot.streamdock.discord.disconnect": {
+    "Name": "Disconnetti",
+    "Tooltip": "Disconnetti dal canale vocale"
+  },
   "Category": "Discord",
   "Localization": {
     "请启动Discord": "Avvia Discord",

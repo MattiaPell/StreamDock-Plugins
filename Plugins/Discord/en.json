@@ -57,6 +57,18 @@
     "Name": "Deaf Control",
     "Tooltip": "Deaf Control"
   },
+  "com.hotspot.streamdock.discord.video": {
+    "Name": "Toggle Video",
+    "Tooltip": "Toggle camera"
+  },
+  "com.hotspot.streamdock.discord.screenshare": {
+    "Name": "Toggle Screenshare",
+    "Tooltip": "Toggle screenshare"
+  },
+  "com.hotspot.streamdock.discord.disconnect": {
+    "Name": "Disconnect",
+    "Tooltip": "Disconnect from voice channel"
+  },
   "Category": "Discord",
   "Localization": {
     "请启动Discord": "Please start Discord",
