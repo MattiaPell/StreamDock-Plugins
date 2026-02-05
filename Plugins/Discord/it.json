@@ -41,6 +41,10 @@
     "Name": "Controllo volume utente",
     "Tooltip": "Controllo volume utente"
   },
+  "com.hotspot.streamdock.discord.userStatus": {
+    "Name": "Stato Utente",
+    "Tooltip": "Visualizza lo stato di un utente"
+  },
   "com.hotspot.streamdock.discord.voiceboard": {
     "Name": "Soundboard",
     "Tooltip": "Soundboard"
@@ -69,6 +73,7 @@
     "用户": "Utente",
     "Logout": "Disconnetti",
     "理想音量": "Volume ideale",
+    "用户状态": "Stato Utente",
     "调整单位": "Regola unità",
     "图标样式": "Stile Icona",
     "静音类型": "Tipo di muto",

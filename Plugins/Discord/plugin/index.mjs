@@ -327,7 +327,7 @@ class GobalListener {
     }
   }
   static async VOICE_CHANNEL_SELECT(data) {
-    await getCurrentChannelsUser(data);
+    await GobalListener.getCurrentChannelsUser(data);
     Object.values(GobalListener.#event['VOICE_CHANNEL_SELECT']).forEach(async (fun) => await fun());
   }
   static async NOTIFICATION_CREATE(data) {
@@ -349,6 +349,12 @@ class GobalListener {
       Object.assign(GobalListener.data, data);
     }
     Object.values(GobalListener.#event['VOICE_SETTINGS_UPDATE']).forEach(async (fun) => await fun());
+  }
+  static async VOICE_STATE_UPDATE(data) {
+    await GobalListener.getCurrentChannelsUser();
+    if (GobalListener.#event['VOICE_STATE_UPDATE']) {
+      Object.values(GobalListener.#event['VOICE_STATE_UPDATE']).forEach(async (fun) => await fun());
+    }
   }
 }
 const getSelectChannel = async (setting, istextChannel = false) => {
@@ -910,6 +916,95 @@ plugin.notice = new Actions({
     }
   },
 });
+// 用户状态
+plugin.userStatus = new Actions({
+  async UPDATE(context) {
+    if (LoginState.hasLogin == false) return;
+    let channelsUser = await GobalListener.getCurrentChannelsUser();
+    this.data[context] = this.data[context] || {};
+    this.data[context].voice_states = channelsUser;
+    plugin.setSettings(context, this.data[context]);
+
+    let selectUserID = this.data[context]?.user;
+    if (!selectUserID) return;
+
+    const voiceState = channelsUser.find((state) => state.user.id == selectUserID);
+    let isOnline = !!voiceState;
+
+    try {
+      let avatarData = await client.getImage(selectUserID);
+      let imageBuffer = Buffer.from(avatarData.data_url.split(',')[1], 'base64');
+      let image = await Jimp.fromBuffer(imageBuffer);
+      image.resize({ w: 128, h: 128 });
+
+      if (!isOnline) {
+        // Apply 50% opacity/brightness to indicate offline
+        image.brightness(-0.5);
+      }
+
+      let base64 = await image.getBase64('image/jpeg', { quality: 70 });
+      plugin.setImage(context, base64);
+
+      if (voiceState) {
+        let user = voiceState.user;
+        let title = user.global_name || user.username;
+        plugin.setTitle(context, title, 3, 6);
+        // Save name to settings for offline display
+        this.data[context].lastKnownName = title;
+        plugin.setSettings(context, this.data[context]);
+      } else if (this.data[context].lastKnownName) {
+        plugin.setTitle(context, this.data[context].lastKnownName, 3, 6);
+      }
+    } catch (error) {
+      log.error('userStatus UPDATE error', error);
+    }
+  },
+  async _willAppear({ context, payload }) {
+    this.data = this.data || {};
+    this.unsubscribe = this.unsubscribe || {};
+    this.currentUser = this.currentUser || {};
+    this.currentUser[context] = payload.settings.user;
+
+    const updateCallback = async () => {
+      await this.UPDATE(context);
+    };
+
+    if (LoginState.hasLogin) {
+      updateCallback();
+    }
+
+    this.unsubscribe[context] = [
+      eventEmitter.subscribe('Login', updateCallback),
+      () => GobalListener.removeListener('VOICE_STATE_UPDATE', context),
+      () => GobalListener.removeListener('VOICE_CHANNEL_SELECT', context),
+    ];
+
+    await GobalListener.addListener('VOICE_STATE_UPDATE', updateCallback, context);
+    await GobalListener.addListener('VOICE_CHANNEL_SELECT', updateCallback, context);
+  },
+  _willDisappear({ context }) {
+    if (this.unsubscribe[context]) {
+      this.unsubscribe[context].forEach((unsub) => unsub());
+      delete this.unsubscribe[context];
+    }
+  },
+  async _didReceiveSettings({ payload, context }) {
+    if (this.currentUser[context] != payload.settings.user) {
+      this.currentUser[context] = payload.settings.user;
+
+      // Try to find the name in the current voice states to save it for offline display
+      let voiceState = payload.settings.voice_states?.find((s) => s.user.id == payload.settings.user);
+      if (voiceState) {
+        this.data[context].lastKnownName = voiceState.user.global_name || voiceState.user.username;
+      }
+
+      this.UPDATE(context);
+    }
+  },
+  _propertyInspectorDidAppear({ payload, context }) {
+    this.UPDATE(context);
+  },
+});
 // 用户音量控制
 plugin.userVolumeControl = new Actions({
   async VOLUME(context) {
@@ -917,6 +1012,7 @@ plugin.userVolumeControl = new Actions({
       return;
     }
     let temp = await GobalListener.getCurrentChannelsUser();
+    this.data[context] = this.data[context] || {};
     this.data[context].voice_states = temp;
     plugin.setSettings(context, this.data[context]);
     if (!temp || temp.length == 0) {
@@ -924,10 +1020,11 @@ plugin.userVolumeControl = new Actions({
       return;
     }
 
-    if (temp[0].user == undefined) {
-      return;
-    }
     let selectUserID = this.data[context]?.user;
+    if (!selectUserID && temp.length > 0) {
+      selectUserID = temp[0].user.id;
+    }
+
     const elementExists = temp.filter((state) => {
       return state.user.id == selectUserID;
     });
@@ -936,20 +1033,77 @@ plugin.userVolumeControl = new Actions({
       //没有选中的用户或者选中的用户不在了
       plugin.setTitle(context, '用户不在频道中', 3, 10);
     } else {
-      let test = elementExists[0]?.user?.global_name || elementExists[0]?.user?.username;
-      plugin.setTitle(context, test, 3, 6);
-      let temp1 = await client.getImage(elementExists[0]?.user?.id);
-      plugin.setImage(context, temp1.data_url);
+      let voiceState = elementExists[0];
+      let user = voiceState.user;
+      let title = user.global_name || user.username;
+
+      let avatarData = await client.getImage(user.id);
+      let imageBuffer = Buffer.from(avatarData.data_url.split(',')[1], 'base64');
+      let image = await Jimp.fromBuffer(imageBuffer);
+      image.resize({ w: 128, h: 128 });
+
+      let font = await loadFont(SANS_32_WHITE);
+      let volume = Math.round(voiceState.volume);
+      let volumeText = `${volume}%`;
+
+      // Create a semi-transparent black rectangle at the bottom for volume
+      let overlay = new Jimp({ width: 128, height: 40, color: 0x00000088 });
+      await image.composite(overlay, 0, 88);
+
+      await image.print({
+        font,
+        x: 64 - measureText(font, volumeText) / 2,
+        y: 92,
+        text: volumeText,
+      });
+
+      if (voiceState.mute) {
+        let mutedText = 'MUTED';
+        // Red overlay for muted state
+        let muteOverlay = new Jimp({ width: 128, height: 128, color: 0xff000044 });
+        await image.composite(muteOverlay, 0, 0);
+        await image.print({
+          font,
+          x: 64 - measureText(font, mutedText) / 2,
+          y: 10,
+          text: mutedText,
+        });
+      }
+
+      let base64 = await image.getBase64('image/jpeg', { quality: 70 });
+      plugin.setImage(context, base64);
+      plugin.setTitle(context, title, 3, 6);
     }
   },
   async _willAppear({ context, payload }) {
     log.info('用户音量控制: ', context);
-    this.currentUser = {};
+    this.data = this.data || {};
+    this.unsubscribe = this.unsubscribe || {};
+    this.currentUser = this.currentUser || {};
+    this.currentUser[context] = payload.settings.user;
+
+    const updateCallback = async () => {
+      await this.VOLUME(context);
+    };
+
     if (LoginState.hasLogin) {
-      this.VOLUME(context);
+      updateCallback();
     }
 
-    eventEmitter.subscribe('Login', this.VOLUME.bind(this, context));
+    this.unsubscribe[context] = [
+      eventEmitter.subscribe('Login', updateCallback),
+      () => GobalListener.removeListener('VOICE_STATE_UPDATE', context),
+      () => GobalListener.removeListener('VOICE_CHANNEL_SELECT', context),
+    ];
+
+    await GobalListener.addListener('VOICE_STATE_UPDATE', updateCallback, context);
+    await GobalListener.addListener('VOICE_CHANNEL_SELECT', updateCallback, context);
+  },
+  _willDisappear({ context }) {
+    if (this.unsubscribe[context]) {
+      this.unsubscribe[context].forEach((unsub) => unsub());
+      delete this.unsubscribe[context];
+    }
   },
   async _didReceiveSettings({ payload, context }) {
     if (this.currentUser[context] != payload.settings.user) {
@@ -963,6 +1117,55 @@ plugin.userVolumeControl = new Actions({
   },
   _propertyInspectorDidAppear({ payload, context }) {
     this.VOLUME(context);
+  },
+  async dialRotate({ payload, context }) {
+    if (LoginState.hasLogin == false) return;
+    let userId = this.data[context]?.user;
+    if (!userId) return;
+
+    let voice_state = this.data[context].voice_states?.find((item) => item.user.id == userId);
+    if (!voice_state) return;
+
+    let step = 5; // 5% step
+    voice_state.volume += payload.ticks * step;
+    if (voice_state.volume > 200) voice_state.volume = 200;
+    if (voice_state.volume < 0) voice_state.volume = 0;
+
+    let userVoiceSettings = {
+      id: userId,
+      pan: voice_state.pan,
+      volume: voice_state.volume,
+      mute: voice_state.mute,
+    };
+    try {
+      await client?.setUserVoiceSettings(userId, userVoiceSettings);
+      this.VOLUME(context);
+    } catch (error) {
+      log.error('setUserVoiceSettings failed:', error);
+    }
+  },
+  async dialUp({ context }) {
+    if (LoginState.hasLogin == false) return;
+    let userId = this.data[context]?.user;
+    if (!userId) return;
+
+    let voice_state = this.data[context].voice_states?.find((item) => item.user.id == userId);
+    if (!voice_state) return;
+
+    voice_state.mute = !voice_state.mute;
+
+    let userVoiceSettings = {
+      id: userId,
+      pan: voice_state.pan,
+      volume: voice_state.volume,
+      mute: voice_state.mute,
+    };
+    try {
+      await client?.setUserVoiceSettings(userId, userVoiceSettings);
+      this.VOLUME(context);
+    } catch (error) {
+      log.error('setUserVoiceSettings failed:', error);
+    }
   },
   keyUp({ context, payload }) {
     try {
