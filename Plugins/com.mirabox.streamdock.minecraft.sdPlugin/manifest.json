@@ -1,0 +1,69 @@
+{
+  "Actions": [
+    {
+      "Icon": "static/server.png",
+      "Name": "Minecraft Server Status",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "static/server.png",
+          "TitleAlignment": "center",
+          "FontSize": "8"
+        }
+      ],
+      "Settings": {
+        "hostname": "",
+        "port": 25565,
+        "interval": 60
+      },
+      "UUID": "com.mirabox.streamdock.minecraft.server",
+      "PropertyInspectorPath": "propertyInspector/server/index.html"
+    },
+    {
+      "Icon": "static/player.png",
+      "Name": "Minecraft Player Status",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "static/player.png",
+          "TitleAlignment": "center",
+          "FontSize": "8"
+        }
+      ],
+      "Settings": {
+        "hostname": "",
+        "port": 25565,
+        "username": "",
+        "interval": 60
+      },
+      "UUID": "com.mirabox.streamdock.minecraft.player",
+      "PropertyInspectorPath": "propertyInspector/player/index.html"
+    }
+  ],
+  "SDKVersion": 1,
+  "Author": "MiraBox",
+  "Name": "Minecraft Utility",
+  "Icon": "static/icon.png",
+  "CodePathWin": "plugin/index.js",
+  "CodePathMac": "plugin/index.js",
+  "Description": "Monitor Minecraft servers and players",
+  "Category": "Minecraft",
+  "CategoryIcon": "static/icon.png",
+  "Version": "1.0.0",
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.11"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "7"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "3.10.188.226"
+  },
+  "Nodejs": {
+    "Version": "20"
+  }
+}
