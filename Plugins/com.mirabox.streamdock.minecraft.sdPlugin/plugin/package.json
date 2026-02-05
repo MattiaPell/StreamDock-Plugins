@@ -1,0 +1,12 @@
+{
+  "name": "com.mirabox.streamdock.minecraft",
+  "version": "1.0.0",
+  "description": "Minecraft Utility plugin for StreamDock",
+  "main": "index.js",
+  "author": "MiraBox",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "log4js": "^6.9.1",
+    "ws": "^8.14.2"
+  }
+}
