@@ -916,6 +916,95 @@ plugin.notice = new Actions({
     }
   },
 });
+// 用户状态
+plugin.userStatus = new Actions({
+  async UPDATE(context) {
+    if (LoginState.hasLogin == false) return;
+    let channelsUser = await GobalListener.getCurrentChannelsUser();
+    this.data[context] = this.data[context] || {};
+    this.data[context].voice_states = channelsUser;
+    plugin.setSettings(context, this.data[context]);
+
+    let selectUserID = this.data[context]?.user;
+    if (!selectUserID) return;
+
+    const voiceState = channelsUser.find((state) => state.user.id == selectUserID);
+    let isOnline = !!voiceState;
+
+    try {
+      let avatarData = await client.getImage(selectUserID);
+      let imageBuffer = Buffer.from(avatarData.data_url.split(',')[1], 'base64');
+      let image = await Jimp.fromBuffer(imageBuffer);
+      image.resize({ w: 128, h: 128 });
+
+      if (!isOnline) {
+        // Apply 50% opacity/brightness to indicate offline
+        image.brightness(-0.5);
+      }
+
+      let base64 = await image.getBase64('image/jpeg', { quality: 70 });
+      plugin.setImage(context, base64);
+
+      if (voiceState) {
+        let user = voiceState.user;
+        let title = user.global_name || user.username;
+        plugin.setTitle(context, title, 3, 6);
+        // Save name to settings for offline display
+        this.data[context].lastKnownName = title;
+        plugin.setSettings(context, this.data[context]);
+      } else if (this.data[context].lastKnownName) {
+        plugin.setTitle(context, this.data[context].lastKnownName, 3, 6);
+      }
+    } catch (error) {
+      log.error('userStatus UPDATE error', error);
+    }
+  },
+  async _willAppear({ context, payload }) {
+    this.data = this.data || {};
+    this.unsubscribe = this.unsubscribe || {};
+    this.currentUser = this.currentUser || {};
+    this.currentUser[context] = payload.settings.user;
+
+    const updateCallback = async () => {
+      await this.UPDATE(context);
+    };
+
+    if (LoginState.hasLogin) {
+      updateCallback();
+    }
+
+    this.unsubscribe[context] = [
+      eventEmitter.subscribe('Login', updateCallback),
+      () => GobalListener.removeListener('VOICE_STATE_UPDATE', context),
+      () => GobalListener.removeListener('VOICE_CHANNEL_SELECT', context),
+    ];
+
+    await GobalListener.addListener('VOICE_STATE_UPDATE', updateCallback, context);
+    await GobalListener.addListener('VOICE_CHANNEL_SELECT', updateCallback, context);
+  },
+  _willDisappear({ context }) {
+    if (this.unsubscribe[context]) {
+      this.unsubscribe[context].forEach((unsub) => unsub());
+      delete this.unsubscribe[context];
+    }
+  },
+  async _didReceiveSettings({ payload, context }) {
+    if (this.currentUser[context] != payload.settings.user) {
+      this.currentUser[context] = payload.settings.user;
+
+      // Try to find the name in the current voice states to save it for offline display
+      let voiceState = payload.settings.voice_states?.find((s) => s.user.id == payload.settings.user);
+      if (voiceState) {
+        this.data[context].lastKnownName = voiceState.user.global_name || voiceState.user.username;
+      }
+
+      this.UPDATE(context);
+    }
+  },
+  _propertyInspectorDidAppear({ payload, context }) {
+    this.UPDATE(context);
+  },
+});
 // 用户音量控制
 plugin.userVolumeControl = new Actions({
   async VOLUME(context) {

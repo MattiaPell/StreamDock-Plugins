@@ -110,6 +110,22 @@
       "PropertyInspectorPath": "propertyInspector/userVolumeControl/index.html"
     },
     {
+      "Icon": "static/icon/6.png",
+      "Name": "用户状态",
+      "States": [
+        {
+          "FontSize": "12",
+          "TitleAlignment": "bottom",
+          "Image": "static/icon/Image10.png"
+        }
+      ],
+      "UserTitleEnabled": true,
+      "SupportedInMultiActions": false,
+      "Tooltip": "discord operation",
+      "UUID": "com.hotspot.streamdock.discord.userStatus",
+      "PropertyInspectorPath": "propertyInspector/userStatus/index.html"
+    },
+    {
       "Icon": "static/icon/7.png",
       "Name": "音量控制",
       "States": [
