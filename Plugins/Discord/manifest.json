@@ -104,6 +104,9 @@
       "SupportedInMultiActions": false,
       "Tooltip": "discord operation",
       "UUID": "com.hotspot.streamdock.discord.userVolumeControl",
+      "Controllers": [
+        "Knob"
+      ],
       "PropertyInspectorPath": "propertyInspector/userVolumeControl/index.html"
     },
     {

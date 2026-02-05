@@ -34,5 +34,8 @@
     "undici": "^7.16.0",
     "webp-converter": "^2.3.3",
     "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.4"
   }
 }
