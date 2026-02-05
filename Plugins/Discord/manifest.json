@@ -216,6 +216,88 @@
       "Tooltip": "discord operation",
       "UUID": "com.hotspot.streamdock.discord.deafcontrol",
       "PropertyInspectorPath": "propertyInspector/deafcontrol/index.html"
+    },
+    {
+      "Icon": "static/icon/Image14.png",
+      "Name": "Push to Talk",
+      "States": [
+        {
+          "Image": "static/icon/Image14.png"
+        }
+      ],
+      "UserTitleEnabled": true,
+      "SupportedInMultiActions": false,
+      "Tooltip": "discord operation",
+      "UUID": "com.hotspot.streamdock.discord.pushtotalk",
+      "PropertyInspectorPath": "propertyInspector/pushtotalk/index.html"
+    },
+    {
+      "Icon": "static/icon/Image14.png",
+      "Name": "Push to Mute",
+      "States": [
+        {
+          "Image": "static/icon/Image14.png"
+        }
+      ],
+      "UserTitleEnabled": true,
+      "SupportedInMultiActions": false,
+      "Tooltip": "discord operation",
+      "UUID": "com.hotspot.streamdock.discord.pushtomute",
+      "PropertyInspectorPath": "propertyInspector/pushtomute/index.html"
+    },
+    {
+      "Icon": "static/icon/Image14.png",
+      "Name": "Toggle Video",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "static/icon/Image14.png",
+          "Name": "Video Off"
+        },
+        {
+          "Image": "static/icon/Image14.png",
+          "Name": "Video On"
+        }
+      ],
+      "UserTitleEnabled": true,
+      "SupportedInMultiActions": false,
+      "Tooltip": "discord operation",
+      "UUID": "com.hotspot.streamdock.discord.video",
+      "PropertyInspectorPath": "propertyInspector/video/index.html"
+    },
+    {
+      "Icon": "static/icon/Image14.png",
+      "Name": "Toggle Screenshare",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "static/icon/Image14.png",
+          "Name": "Screenshare Off"
+        },
+        {
+          "Image": "static/icon/Image14.png",
+          "Name": "Screenshare On"
+        }
+      ],
+      "UserTitleEnabled": true,
+      "SupportedInMultiActions": false,
+      "Tooltip": "discord operation",
+      "UUID": "com.hotspot.streamdock.discord.screenshare",
+      "PropertyInspectorPath": "propertyInspector/screenshare/index.html"
+    },
+    {
+      "Icon": "static/icon/Image14.png",
+      "Name": "Disconnect",
+      "States": [
+        {
+          "Image": "static/icon/Image14.png"
+        }
+      ],
+      "UserTitleEnabled": true,
+      "SupportedInMultiActions": false,
+      "Tooltip": "discord operation",
+      "UUID": "com.hotspot.streamdock.discord.disconnect",
+      "PropertyInspectorPath": "propertyInspector/disconnect/index.html"
     }
   ],
   "SDKVersion": 1,

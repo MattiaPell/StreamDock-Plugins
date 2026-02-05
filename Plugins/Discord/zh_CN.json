@@ -18,12 +18,12 @@
     "Tooltip": "加入文本通道"
   },
   "com.hotspot.streamdock.discord.pushtotalk": {
-    "Name": "按住静音",
-    "Tooltip": "按住静音"
-  },
-  "com.hotspot.streamdock.discord.pushtomute": {
     "Name": "按住讲话",
     "Tooltip": "按住讲话"
+  },
+  "com.hotspot.streamdock.discord.pushtomute": {
+    "Name": "按住静音",
+    "Tooltip": "按住静音"
   },
   "com.hotspot.streamdock.discord.volumeControl": {
     "Name": "音量控制",
@@ -52,6 +52,18 @@
   "com.hotspot.streamdock.discord.deafcontrol": {
     "Name": "耳机控制",
     "Tooltip": "耳机控制"
+  },
+  "com.hotspot.streamdock.discord.video": {
+    "Name": "切换视频",
+    "Tooltip": "切换视频"
+  },
+  "com.hotspot.streamdock.discord.screenshare": {
+    "Name": "切换屏幕共享",
+    "Tooltip": "切换屏幕共享"
+  },
+  "com.hotspot.streamdock.discord.disconnect": {
+    "Name": "断开连接",
+    "Tooltip": "从语音通道断开"
   },
   "Category": "Discord",
   "Localization": {

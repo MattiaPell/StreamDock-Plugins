@@ -47,7 +47,7 @@ const $propEvent = {
     if (!settings.clientSecret) {
       openAuthorization();
     } else {
-      logoutdiv.style.display = 'flex';
+      $dom.logoutdiv.style.display = 'flex';
     }
   },
 };

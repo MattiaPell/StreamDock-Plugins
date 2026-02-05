@@ -112,6 +112,8 @@ class GobalListener {
     noticeImage: '',
     channelsUser: [],
     currentVoiceChannel: '',
+    video: false,
+    screenshare: false,
   };
   static #hasEnable = [];
   static #unsubscribe = {};
@@ -231,6 +233,14 @@ class GobalListener {
       case 'VOICE_STATE_UPDATE':
         client.on('VOICE_STATE_UPDATE', GobalListener.VOICE_STATE_UPDATE);
         GobalListener.#unsubscribe['VOICE_STATE_UPDATE'] = client.subscribe('VOICE_STATE_UPDATE', data);
+        break;
+      case 'VIDEO_STATE_UPDATE':
+        client.on('VIDEO_STATE_UPDATE', GobalListener.VIDEO_STATE_UPDATE);
+        GobalListener.#unsubscribe['VIDEO_STATE_UPDATE'] = client.subscribe('VIDEO_STATE_UPDATE', data);
+        break;
+      case 'SCREENSHARE_STATE_UPDATE':
+        client.on('SCREENSHARE_STATE_UPDATE', GobalListener.SCREENSHARE_STATE_UPDATE);
+        GobalListener.#unsubscribe['SCREENSHARE_STATE_UPDATE'] = client.subscribe('SCREENSHARE_STATE_UPDATE', data);
         break;
     }
   }
@@ -356,6 +366,18 @@ class GobalListener {
       Object.values(GobalListener.#event['VOICE_STATE_UPDATE']).forEach(async (fun) => await fun());
     }
   }
+  static async VIDEO_STATE_UPDATE(data) {
+    GobalListener.data.video = data.video_enabled;
+    if (GobalListener.#event['VIDEO_STATE_UPDATE']) {
+      Object.values(GobalListener.#event['VIDEO_STATE_UPDATE']).forEach(async (fun) => await fun());
+    }
+  }
+  static async SCREENSHARE_STATE_UPDATE(data) {
+    GobalListener.data.screenshare = data.screenshare_enabled;
+    if (GobalListener.#event['SCREENSHARE_STATE_UPDATE']) {
+      Object.values(GobalListener.#event['SCREENSHARE_STATE_UPDATE']).forEach(async (fun) => await fun());
+    }
+  }
 }
 const getSelectChannel = async (setting, istextChannel = false) => {
   await GobalListener.getGuilds();
@@ -407,7 +429,18 @@ const login = async () => {
   if (LoginState.timer) {
     clearTimeout(LoginState.timer);
   }
-  const scopes = ['rpc', 'identify', 'rpc.voice.read', 'messages.read', 'rpc.notifications.read', 'rpc.voice.write'];
+  const scopes = [
+    'rpc',
+    'identify',
+    'rpc.voice.read',
+    'messages.read',
+    'rpc.notifications.read',
+    'rpc.voice.write',
+    'rpc.video.read',
+    'rpc.video.write',
+    'rpc.screenshare.read',
+    'rpc.screenshare.write',
+  ];
   const { clientId, clientSecret, accessToken } = plugin.globalSettings;
 
   if (clientId) {
@@ -1266,6 +1299,88 @@ plugin.setDevices = new Actions({
     client?.setVoiceSettings(res);
   },
 });
+
+// 视频控制
+plugin.video = class extends Actions {
+  stateCallback() {
+    plugin.setState(this.context, GobalListener.data.video ? 1 : 0);
+  }
+  async _willAppear({ context }) {
+    this.context = context;
+    const VIDEO = async () => {
+      await GobalListener.addListener('VIDEO_STATE_UPDATE', this.stateCallback.bind(this), context);
+      this.stateCallback();
+    };
+    if (LoginState.hasLogin) VIDEO();
+    this.unsubscribe = eventEmitter.subscribe('Login', VIDEO);
+  }
+  _willDisappear({ context }) {
+    this.unsubscribe();
+    GobalListener.removeListener('VIDEO_STATE_UPDATE', context);
+  }
+  keyUp({ context }) {
+    client?.request('TOGGLE_VIDEO');
+  }
+};
+
+// 屏幕共享控制
+plugin.screenshare = class extends Actions {
+  stateCallback() {
+    plugin.setState(this.context, GobalListener.data.screenshare ? 1 : 0);
+  }
+  async _willAppear({ context }) {
+    this.context = context;
+    const SCREENSHARE = async () => {
+      await GobalListener.addListener('SCREENSHARE_STATE_UPDATE', this.stateCallback.bind(this), context);
+      this.stateCallback();
+    };
+    if (LoginState.hasLogin) SCREENSHARE();
+    this.unsubscribe = eventEmitter.subscribe('Login', SCREENSHARE);
+  }
+  _willDisappear({ context }) {
+    this.unsubscribe();
+    GobalListener.removeListener('SCREENSHARE_STATE_UPDATE', context);
+  }
+  keyUp({ context }) {
+    client?.request('TOGGLE_SCREENSHARE');
+  }
+};
+
+// 退出语音通道
+plugin.disconnect = class extends Actions {
+  async _willAppear({ context }) {
+    this.context = context;
+  }
+  keyUp({ context }) {
+    client?.selectVoiceChannel(null);
+  }
+};
+
+// 按住说话
+plugin.pushtotalk = class extends Actions {
+  async _willAppear({ context }) {
+    this.context = context;
+  }
+  keyDown({ context }) {
+    client?.request('PUSH_TO_TALK', { active: true });
+  }
+  keyUp({ context }) {
+    client?.request('PUSH_TO_TALK', { active: false });
+  }
+};
+
+// 按住静音
+plugin.pushtomute = class extends Actions {
+  async _willAppear({ context }) {
+    this.context = context;
+  }
+  keyDown({ context }) {
+    client?.request('PUSH_TO_TALK', { active: false });
+  }
+  keyUp({ context }) {
+    client?.request('PUSH_TO_TALK', { active: true });
+  }
+};
 
 // function startServer() {
 //   const express = require('express');
