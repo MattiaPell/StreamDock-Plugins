@@ -1,8 +1,13 @@
 import { log } from './utils/log.mjs';
 import path from 'path';
 import inspector from 'inspector';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 try {
-  process.chdir(path.dirname());
+  process.chdir(__dirname);
   inspector.open(9229, '127.0.0.1', true);
   console.log('Inspector listening at:', inspector.url());
 } catch (e) {
@@ -17,8 +22,7 @@ import { Plugins, Actions, eventEmitter } from './utils/plugin.mjs';
 import RPC from 'discord-rpc';
 import fs from 'fs-extra';
 import crypto from 'crypto';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 const Jimp = createJimp({
   formats: [...defaultFormats, webp],
   plugins: defaultPlugins,
@@ -347,27 +351,6 @@ class GobalListener {
     Object.values(GobalListener.#event['VOICE_SETTINGS_UPDATE']).forEach(async (fun) => await fun());
   }
 }
-const API_ENDPOINT = 'https://discord.com/api/v10';
-async function getToken(client_id, client_secret) {
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    scope: 'identify rpc rpc.voice.read rpc.notifications.read rpc.voice.write',
-  });
-  const basicAuth = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
-  const response = await fetch(`${API_ENDPOINT}/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${basicAuth}`,
-    },
-    body: body,
-  });
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP ${response.status} - ${errorText}`);
-  }
-  return await response.json();
-}
 const getSelectChannel = async (setting, istextChannel = false) => {
   await GobalListener.getGuilds();
   let temp = { guilds: GobalListener.data.guilds, channels: [], channel: '', select: '' };
@@ -419,9 +402,9 @@ const login = async () => {
     clearTimeout(LoginState.timer);
   }
   const scopes = ['rpc', 'identify', 'rpc.voice.read', 'messages.read', 'rpc.notifications.read', 'rpc.voice.write'];
-  const accessToken = plugin.globalSettings.accessToken;
-  const clientId = plugin.globalSettings.clientId;
-  if (clientId && accessToken) {
+  const { clientId, clientSecret, accessToken } = plugin.globalSettings;
+
+  if (clientId) {
     log.info('try login');
     try {
       client = new RPC.Client({ transport: 'ipc' });
@@ -437,36 +420,47 @@ const login = async () => {
 
         log.info(`WebSocket 连接已关闭`);
       });
-      await client.login({ clientId, accessToken, scopes }); // 等待登录完成
+
+      if (accessToken) {
+        await client.login({ clientId, accessToken, scopes });
+      } else if (clientSecret) {
+        log.info('No accessToken, trying to authorize with clientSecret');
+        await client.login({ clientId, clientSecret, scopes, redirectUri: 'http://127.0.0.1:26432' });
+        if (client.accessToken) {
+          plugin.globalSettings.accessToken = client.accessToken;
+          plugin.setGlobalSettings(plugin.globalSettings);
+        }
+      } else {
+        log.info('Missing accessToken and clientSecret');
+        LoginState.logining = false;
+        return;
+      }
+
       LoginState.loginState = 1;
       log.info('Logged in successfully!');
 
       try {
         LoginState.hasLogin = true;
         LoginState.failCount = 0;
+        LoginState.refreshTokenCout = 0;
         refreshState();
         await eventEmitter.emit('Login');
       } catch (error) {
         log.error('emit error', error);
       }
     } catch (error) {
-      if (error.code === 4009) {
-        log.error('Error code:', error.code || error);
-        // code: 4009, Token does not match current user Invalid token
+      if (error.code === 4009 || error.message?.includes('token')) {
+        log.error('Token error, clearing accessToken:', error.code || error.message);
         plugin.globalSettings.accessToken = '';
         LoginState.refreshTokenCout++;
-        if (refreshTokenCout > 2) {
-          log.error('refreshToken more than 2,clear id and secret');
+        if (LoginState.refreshTokenCout > 2) {
+          log.error('re-authorization failed multiple times, clearing id and secret');
           plugin.globalSettings.clientId = '';
           plugin.globalSettings.clientSecret = '';
-        } else {
-          log.info('try refreshToken');
-          let temp = await getToken(plugin.globalSettings.clientId, plugin.globalSettings.clientSecret);
-          plugin.globalSettings.accessToken = temp.access_token;
         }
         plugin.setGlobalSettings(plugin.globalSettings);
       } else {
-        log.error('Login failed:', error.code || '');
+        log.error('Login failed:', error.code || error.message || error);
       }
       client = null;
       LoginState.loginState = -1;
@@ -1175,12 +1169,6 @@ plugin.didReceiveGlobalSettings = async (data) => {
   LoginState.hasLogin = false;
   LoginState.failCount = 0;
   if (plugin.globalSettings.clientId && plugin.globalSettings.clientSecret) {
-    if (!plugin.globalSettings.accessToken) {
-      let temp = await getToken(plugin.globalSettings.clientId, plugin.globalSettings.clientSecret);
-      plugin.globalSettings.accessToken = temp.access_token;
-      plugin.setGlobalSettings(plugin.globalSettings);
-    }
-
     if (LoginState.appState == true) {
       clearTimeout(LoginState.timer);
       login();
