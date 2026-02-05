@@ -1,0 +1,51 @@
+{
+  "Actions": [
+    {
+      "Icon": "static/storage.png",
+      "Name": "NAS Storage",
+      "Tooltip": "Show available space on Synology NAS",
+      "UUID": "com.jules.synology.storage",
+      "PropertyInspectorPath": "propertyInspector/index.html"
+    },
+    {
+      "Icon": "static/utilization.png",
+      "Name": "NAS Utilization",
+      "Tooltip": "Show CPU/RAM utilization",
+      "UUID": "com.jules.synology.utilization",
+      "PropertyInspectorPath": "propertyInspector/index.html"
+    },
+    {
+      "Icon": "static/status.png",
+      "Name": "NAS Status",
+      "Tooltip": "Show NAS online status",
+      "UUID": "com.jules.synology.status",
+      "PropertyInspectorPath": "propertyInspector/index.html"
+    }
+  ],
+  "SDKVersion": 1,
+  "Author": "Jules",
+  "Name": "Synology NAS",
+  "Icon": "static/favicon.png",
+  "CodePathWin": "plugin/index.mjs",
+  "CodePathMac": "plugin/index.mjs",
+  "Description": "Integrate Synology NAS monitoring",
+  "Category": "Synology",
+  "CategoryIcon": "static/favicon.png",
+  "Version": "1.0.0",
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.11"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "7"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "3.10.188.226"
+  },
+  "Nodejs": {
+    "Version": "20"
+  }
+}
